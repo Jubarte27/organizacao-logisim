@@ -1,0 +1,22 @@
+# To-Do
+
+- JAL
+  - [x] Monociclo
+  - [x] Multiciclo
+  - [x] Pipeline
+- BGEU
+  - [x] Monociclo
+  - [x] Multiciclo
+  - [x] Pipeline
+- LUI
+  - [x] Monociclo
+  - [x] Multiciclo
+  - [x] Pipeline
+- SLLI
+  - [x] Monociclo
+  - [x] Multiciclo
+  - [x] Pipeline
+- SLTI
+  - [x] Monociclo
+  - [x] Multiciclo
+  - [x] Pipeline

@@ -1,0 +1,87 @@
+- LUI:
+    - opcode: 0110111
+    - ALUop: 11
+    - ALUcontrol: 1111
+    - controle:
+        - monociclo: 11011000
+        - multiciclo: opcode 0110111 leva a linha 0x370
+            - Passo 1: 0110111 0 -> 1
+            - Passo 2: 0110111 1 -> 10
+            - Passo 3: 0110111 10 -> 7
+            - Passo 4: 0110111 7 -> 0
+        - pipeline: 10000111
+- SLLI:
+    - opcode: 0010011
+    - funct3: 001
+    - funct7: 0000000
+    - ALUop: 10
+    - ALUcontrol: 0101
+    - controle:
+        - monociclo: 11010000
+        - multiciclo: opcode 0010011 leva a linha 0x130
+            - Passo 1: 0010011 0 -> 1
+            - Passo 2: 0010011 1 -> 9
+            - Passo 3: 0010011 9 -> 7
+            - Passo 4: 0010011 7 -> 0
+        - pipeline: 10000110
+
+## Multiciclo
+
+### Tabela de estados
+|Estado|Controle|
+|:--|:--|
+|0|000 0100 0100 1010|
+|1|000 1101 0000 0000|
+|2|000 1010 0000 0000|
+|3|000 0000 0000 1100|
+|4|000 0000 1010 0000|
+|5|000 0000 0001 0100|
+|6|010 0010 0000 0000|
+|7|000 0000 1000 0000|
+|8|101 0010 0000 0001|
+|SLLI-9|010 1010 0000 0000|
+|LUI-10|011 1000 0000 0000|
+|JAL-11|100 0000 0000 0010|
+|JAL-12|000 0101 1000 0000|
+
+#### Tabela separada por significado dos bits
+
+|Estado|PCSource|ALUop|ALUsrcB|ALUsrcA|RegWrite|IRWrite|MemToReg|MemWrite|MemRead|IorD|PCWrite|PCWriteCond|
+|:--|:--|:--|:--|:--|:--|:--|:--|:--|:--|:--|:--|:--|
+|0      |0|00|01|00|0|1|0|0|1|0|1|0|
+|1      |0|00|11|01|0|0|0|0|0|0|0|0|
+|2      |0|00|10|10|0|0|0|0|0|0|0|0|
+|3      |0|00|00|00|0|0|0|0|1|1|0|0|
+|4      |0|00|00|00|1|0|1|0|0|0|0|0|
+|5      |0|00|00|00|0|0|0|1|0|1|0|0|
+|6      |0|10|00|10|0|0|0|0|0|0|0|0|
+|7      |0|00|00|00|1|0|0|0|0|0|0|0|
+|8      |1|01|00|10|0|0|0|0|0|0|0|1|
+|SLLI-9 |0|10|10|10|0|0|0|0|0|0|0|0|
+|LUI-10 |0|11|10|00|0|0|0|0|0|0|0|0|
+|JAL-11 |1|00|00|00|0|0|0|0|0|0|1|0|
+|JAL-12 |0|00|01|01|1|0|0|0|0|0|0|0|
+
+##### Feiura
+Para separar os bits, substituir na tabela de estados usando regex (bem feio)
+
+from:
+``` re
+\b([01])([01])([01])\b \b([01])([01])([01])([01])\b \b([01])([01])([01])([01])\b \b([01])([01])([01])([01])\b
+```
+to
+``` re
+$1|$2$3|$4$5|$6$7|$8|$9|$10|$11|$12|$13|$14|$15
+```
+
+### Pipeline
+
+Banco de registradores não escreve "na subida" e lê "na descida" do clock
+- Para não acontecer problema com Read After Write, precisa de 4 de distância entre instruções com esse tipo de dependência 
+
+
+
+### a
+0002083 0402103 020f463 0 0 0 020f663 0 0 0 020f863 0 0 0 020fa63 0 0 0 0005137 0 0 0 0711113 0 0 0 ff12193
+
+0002083 0402103 020f463 020f663 020f863 020fa63 0005137 0711113 ff12193
