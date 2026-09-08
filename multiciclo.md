@@ -1,3 +1,6 @@
+# Outras mudanças:
+- OldPC "enable" deixa de ser 1 e passa a ser o mesmo fio que PC. Assim OldPC sempre tem o OldPC, não somente no estado 1
+
 # Estados:
 
 0.  fetch

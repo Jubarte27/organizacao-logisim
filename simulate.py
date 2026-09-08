@@ -45,17 +45,28 @@ def find_default_jar(script_dir: Path) -> Path:
     return (script_dir / "logisim-generic-2.7.1.jar").resolve()
 
 def ensure_compiled(script_dir: Path, jar_path: Path) -> None:
-    java_file = script_dir / "com" / "cburch" / "logisim" / "std" / "memory" / "CircuitSimulator.java"
-    class_file = script_dir / "com" / "cburch" / "logisim" / "std" / "memory" / "CircuitSimulator.class"
+    mem_dir = script_dir / "com" / "cburch" / "logisim" / "std" / "memory"
+    java_file = mem_dir / "CircuitSimulator.java"
 
     if not java_file.is_file():
         sys.exit(f"Error: Java runner source not found at {java_file}")
 
+    expected_classes = [
+        "CircuitSimulator.class",
+        "CircuitSimulator$MemoryRecord.class",
+        "CircuitSimulator$RegisterRecord.class",
+        "CircuitSimulator$SimResult.class",
+    ]
+
     needs_compilation = False
-    if not class_file.is_file():
-        needs_compilation = True
-    elif java_file.stat().st_mtime > class_file.stat().st_mtime:
-        needs_compilation = True
+    for c_name in expected_classes:
+        cf = mem_dir / c_name
+        if not cf.is_file():
+            needs_compilation = True
+            break
+        if java_file.stat().st_mtime > cf.stat().st_mtime:
+            needs_compilation = True
+            break
 
     if needs_compilation:
         cmd = [
