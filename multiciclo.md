@@ -58,3 +58,6 @@ Fluxo:
 rd=rs1 < imm
 Fluxo:
 > 0x0 -> 0x1 ->  0x9 -> 0x7
+
+### BGE: (0x63 - funct3: 0x5) branch padrao
+
