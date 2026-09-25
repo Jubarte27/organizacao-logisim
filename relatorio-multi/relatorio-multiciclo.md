@@ -6,7 +6,7 @@ Igual ao monociclo
 
 ### ALU
 
-O mapa de códigos é o mesmo do monociclo, porém a implementação é levemente diferente: Não há sinal de **Less** e a saída do comparador do BGE é negada para que o zero signifique verdadeiro
+O mapa de códigos é o mesmo do monociclo, porém a implementação é levemente diferente: Não há sinal de **Less** e a saída do comparador do BGE é negada para que o zero signifique verdadeiro.
 
 ![ALU](ALU.png)
 
@@ -21,7 +21,7 @@ O mapa de códigos é o mesmo do monociclo, porém a implementação é levement
 - **Opcode**: 0x67, formato I.
 - **Fluxo de Estados**: S0 (Fetch) → S1 (Decode) → S12 (PC to ALU Out) → S13 (Jump & Link) → S0.
 
-O JALR precisa realizar 2 ações: desviar para rs1 + imm e salvar PC + 4 em rd. Para evitar modificações maiores no já complexo datapath, foram utilizados 2 estados extras para essa operação
+O JALR precisa realizar duas ações: desviar para rs1 + imm e salvar PC + 4 em rd. Para evitar modificações maiores no já complexo datapath, foram utilizados dois estados extras para essa operação:
 
 - **S12 - 0x0500**: A ALU soma OldPC com 4 e armazena o resultado em ALU Out, já que, durante a execução de uma instrução, PC é o endereço da próxima instrução.
 - **S13 - 0x0A82**: A ALU calcula o endereço de destino rs1 + imm (ALUSrcA=10, ALUSrcB=10, ALUop=00). A saída direta da ALU tem seu bit menos significativo zerado e é gravada no PC (PCSource=0, PCWrite=1). Simultaneamente, a escrita no banco de registradores é habilitada (RegWrite=1, MemtoReg=0), gravando em rd o valor contido em ALU Out, que é o endereço da próxima instrução.
@@ -73,9 +73,11 @@ O alinhamento dos 12 bits inferiores com zeros é realizado estaticamente no mó
 - **Opcode**: 0x33, funct3=000, funct7=0000001, formato R.
 - **Fluxo de Estados**: S0 (Fetch) → S1 (Decode) → S6 (R-Type Execution) → S7 (Writeback ALU) → S0.
 
-Por ser uma instrução simples de tipo R, compartilha exatamente o fluxo de estados padrão para essas instruções: execução no estado **S6** (0x2200) e escrita no estado **S7** (0x0080). A diferença na execução ocorre quando o campo funct7 tem valor 1
+Por ser uma instrução simples de tipo R, compartilha exatamente o fluxo de estados padrão para essas instruções: execução no estado **S6** (0x2200) e escrita no estado **S7** (0x0080). Para diferenciar as instruções R implementadas bastam os bits 0 e 5 de funct7, que no caso do MUL deve ser 1.
 
-Foi utilizado um multiplicador comum do logisim para realizar a operação na ALU. os bits de carry são ignorados.
+![ALUControl](ALUControl.png)
+
+Foi utilizado um multiplicador comum do logisim, escolhido com o código 3, para realizar a operação na ALU. Os bits de carry são ignorados.
 
 ---
 
@@ -88,7 +90,7 @@ Realiza a comparação sem sinal entre rs1 e o imediato estendido com sinal: se 
 
 - **S9 - 0x2A00**: O operando A recebe rs1 (ALUSrcA=10) e o operando B recebe o imediato estendido via ImmGen (ALUSrcB=10), com ALUop=10. A ALU_Control decodifica funct3=011 e seleciona o código 4 na ALU.
 
-Na ALU é utilizado um comparador unsigned para decidir entre 0 e 1.
+Na ALU é utilizado um comparador unsigned para decidir o valor de saída (0 ou 1).
 
 ![SLTIU](SLTIU.png)
 
