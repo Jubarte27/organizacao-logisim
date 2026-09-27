@@ -69,6 +69,14 @@ public class Sim {
         sb.append("---- registradores ----\n");
         for (Map.Entry<String, Component> e : regs.entrySet()) {
             String v = val(regState.get(e.getKey()), e.getValue());
+            if (e.getKey().equals("x0")) {
+                // A leitura de x0 e' fixada em 0 pelo hardware (entrada 0 dos muxes
+                // de leitura vem de uma constante). O flip-flop fisico pode reter
+                // lixo de uma instrucao com rd = x0; isso nao e' visivel ao programa.
+                if (!v.equals("00000000"))
+                    sb.append(String.format("x0   = 00000000   (registrador fisico retem %s, nao e' lido)%n", v));
+                continue;
+            }
             if (!v.equals("00000000")) sb.append(String.format("%-4s = %s%n", e.getKey(), v));
         }
         System.out.print(sb);
