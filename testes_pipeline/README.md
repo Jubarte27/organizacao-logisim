@@ -45,9 +45,18 @@ Todas foram medidas em simulação e conferidas no netlist do original:
 
 O `testar.py` verifica as duas primeiras regras no traço dinâmico antes de rodar o circuito.
 
-## Resultado em `RISCV_Pipeline.circ` (2026-09-26)
+## Estado atual (2026-09-27): ✅ todas as 12 instruções passam
 
-| instrução | estado | casos |
+Depois das 5 correções abaixo, aplicadas no `RISCV_Pipeline.circ`:
+
+- 42/42 escritas no banco e 52/52 escritas na memória iguais ao modelo;
+- 49/49 casos da assinatura.
+
+As seções seguintes registram o que estava errado e como foi corrigido.
+
+## Problemas encontrados em 2026-09-26 (todos corrigidos em 2026-09-27)
+
+| instrução | estado em 26/09 (antes das correções) | casos |
 |---|---|---|
 | LW, SW | ✅ | 5/5 (deslocamento 0, +4, −4, +2044) |
 | ADD, SUB, AND | ✅ | 5/5 |
@@ -135,8 +144,8 @@ No teste é o caso da palavra 2. `f_jj` nunca roda e o programa segue direto par
 
 ### Validação das correções
 
-As 5 correções foram aplicadas numa **cópia** do `.circ`; o arquivo do trabalho não foi
-alterado. Com elas o teste passa inteiro:
+Antes de irem para o circuito, as 5 correções foram validadas numa cópia do `.circ`.
+Com elas o teste passa inteiro:
 
 - 42/42 escritas no banco e 52/52 na memória iguais ao modelo;
 - 49/49 casos da assinatura.
@@ -147,57 +156,57 @@ Aplicando uma correção por vez, cada uma conserta só a sua instrução.
 
 `0x00001000` = desviou, `0x00002000` = não desviou.
 
-| palavra | endereço | esperado | circuito atual | caso |
-|---|---|---|---|---|
-| 0 | 0x000 | `00000000` | `00000000` | [JALR] instrucoes logo depois de um JALR (tem que ficar 0: flush) |
-| 1 | 0x004 | `00000400` | `00000400` | [JALR] jalr ra,sub_a(x0): ra = pc+4 |
-| 2 | 0x008 | `00001000` | **00000000** ❌ | [JALR] jalr seguido de jalr: f_jj executou |
-| 3 | 0x00c | `80000000` | `80000000` | [LUI] lui 0x80000 |
-| 4 | 0x010 | `12345000` | **12346000** ❌ | [LUI] lui 0x12345 (campo rs1 -> s0) |
-| 5 | 0x014 | `fffff000` | **00f06000** ❌ | [LUI] lui 0xFFFFF (campo rs1 -> t6) |
-| 6 | 0x018 | `00001000` | `00001000` | [LUI] lui 0x00001 |
-| 7 | 0x01c | `acb0e000` | `acb0e000` | [ADD] 0xABC07000 + 0x00F07000 |
-| 8 | 0x020 | `aad00000` | `aad00000` | [SUB] 0xABC07000 - 0x00F07000 |
-| 9 | 0x024 | `00c07000` | `00c07000` | [AND] 0xABC07000 & 0x00F07000 |
-| 10 | 0x028 | `abf07000` | **00c07000** ❌ | [OR]  0xABC07000 \| 0x00F07000 |
-| 11 | 0x02c | `55300000` | `55300000` | [SUB] 0x00F07000 - 0xABC07000 |
-| 12 | 0x030 | `00000000` | `00000000` | [ADD] -0x1000 + 0x1000 |
-| 13 | 0x034 | `03000000` | **00004000** ❌ | [MUL] 0x3000 * 0x1000 |
-| 14 | 0x038 | `fd000000` | **00002000** ❌ | [MUL] -0x1000 * 0x3000 |
-| 15 | 0x03c | `01000000` | **ffffe000** ❌ | [MUL] -0x1000 * -0x1000 |
-| 16 | 0x040 | `31000000` | **abc0e000** ❌ | [MUL] 0xABC07000 * 0x7000 (trunca) |
-| 17 | 0x044 | `00000000` | **00001000** ❌ | [MUL] 0x1000 * 0 |
-| 18 | 0x048 | `00000001` | **00000000** ❌ | [SLTIU] 0 <u 1 |
-| 19 | 0x04c | `00000000` | `00000000` | [SLTIU] 0 <u 0 |
-| 20 | 0x050 | `00000001` | **00000000** ❌ | [SLTIU] 0 <u 0xFFFFFFFF (com sinal daria 0) |
-| 21 | 0x054 | `00000000` | `00000000` | [SLTIU] 0xFFFFF000 <u 5 (com sinal daria 1) |
-| 22 | 0x058 | `00000001` | **00001000** ❌ | [SLTIU] 0x1000 <u 0xFFFFF800 (com sinal daria 0) |
-| 23 | 0x05c | `00000000` | `00000000` | [SLTIU] 0x1000 <u 0x7FF |
-| 24 | 0x060 | `00000001` | **fffff000** ❌ | [SLTIU] 0xFFFFF000 <u 0xFFFFFFFF |
-| 25 | 0x064 | `abc07000` | `abc07000` | [LW/SW] mem[0x1000] |
-| 26 | 0x068 | `00f07000` | `00f07000` | [LW/SW] mem[0x1004] |
-| 27 | 0x06c | `fffff000` | `fffff000` | [LW/SW] mem[0x0FFC] (deslocamento negativo) |
-| 28 | 0x070 | `80000000` | `80000000` | [LW/SW] mem[0x17FC] (deslocamento 2044) |
-| 29 | 0x074 | `00000000` | `00000000` | [LW/SW] mem[0x1008] nunca escrita |
-| 30 | 0x078 | `00001000` | `00001000` | [BEQ] 0x1000 == 0x1000 |
-| 31 | 0x07c | `00002000` | `00002000` | [BEQ] 0x1000 == 0x2000 (rs1 < rs2) |
-| 32 | 0x080 | `00002000` | `00002000` | [BEQ] 0x2000 == 0x1000 (rs1 > rs2) |
-| 33 | 0x084 | `00002000` | `00002000` | [BEQ] -0x1000 == 0x1000 |
-| 34 | 0x088 | `00001000` | `00001000` | [BEQ] 0 == 0 |
-| 35 | 0x08c | `00001000` | `00001000` | [BGE] 0x2000 >= 0x1000 |
-| 36 | 0x090 | `00002000` | `00002000` | [BGE] 0x1000 >= 0x2000 |
-| 37 | 0x094 | `00001000` | `00001000` | [BGE] iguais |
-| 38 | 0x098 | `00002000` | `00002000` | [BGE] -0x1000 >= 0x1000 (sem sinal desviaria) |
-| 39 | 0x09c | `00001000` | `00001000` | [BGE] 0x1000 >= -0x1000 (sem sinal nao desviaria) |
-| 40 | 0x0a0 | `00001000` | `00001000` | [BGE] 0x7FFFF000 >= 0x80000000 (overflow no rs1-rs2) |
-| 41 | 0x0a4 | `00002000` | `00002000` | [BGE] 0x80000000 >= 0x7FFFF000 |
-| 42 | 0x0a8 | `00001000` | `00001000` | [BGE] negativos iguais |
-| 43 | 0x0ac | `00001000` | `00001000` | [BGE] 0 >= -0x1000 |
-| 44 | 0x0b0 | `00000414` | `00000414` | [JALR] jalr t6,-24(ra): t6 = pc+4 |
-| 45 | 0x0b4 | `00001000` | `00001000` | [JALR] voltou de sub_a em ra+12 (bit 0 zerado) |
-| 46 | 0x0b8 | `00002000` | `00002000` | [JALR] voltou de sub_b (retorno em t6) |
-| 47 | 0x0bc | `00000028` | `00000028` | [JALR] ra escrito pela chamada de f_jj |
-| 48 | 0x0c0 | `00002000` | `00002000` | [FIM] programa chegou ao fim |
+| palavra | endereço | esperado | caso |
+|---|---|---|---|
+| 0 | 0x000 | `00000000` | [JALR] instrucoes logo depois de um JALR (tem que ficar 0: flush) |
+| 1 | 0x004 | `00000400` | [JALR] jalr ra,sub_a(x0): ra = pc+4 |
+| 2 | 0x008 | `00001000` | [JALR] jalr seguido de jalr: f_jj executou |
+| 3 | 0x00c | `80000000` | [LUI] lui 0x80000 |
+| 4 | 0x010 | `12345000` | [LUI] lui 0x12345 (campo rs1 -> s0) |
+| 5 | 0x014 | `fffff000` | [LUI] lui 0xFFFFF (campo rs1 -> t6) |
+| 6 | 0x018 | `00001000` | [LUI] lui 0x00001 |
+| 7 | 0x01c | `acb0e000` | [ADD] 0xABC07000 + 0x00F07000 |
+| 8 | 0x020 | `aad00000` | [SUB] 0xABC07000 - 0x00F07000 |
+| 9 | 0x024 | `00c07000` | [AND] 0xABC07000 & 0x00F07000 |
+| 10 | 0x028 | `abf07000` | [OR]  0xABC07000 \| 0x00F07000 |
+| 11 | 0x02c | `55300000` | [SUB] 0x00F07000 - 0xABC07000 |
+| 12 | 0x030 | `00000000` | [ADD] -0x1000 + 0x1000 |
+| 13 | 0x034 | `03000000` | [MUL] 0x3000 * 0x1000 |
+| 14 | 0x038 | `fd000000` | [MUL] -0x1000 * 0x3000 |
+| 15 | 0x03c | `01000000` | [MUL] -0x1000 * -0x1000 |
+| 16 | 0x040 | `31000000` | [MUL] 0xABC07000 * 0x7000 (trunca) |
+| 17 | 0x044 | `00000000` | [MUL] 0x1000 * 0 |
+| 18 | 0x048 | `00000001` | [SLTIU] 0 <u 1 |
+| 19 | 0x04c | `00000000` | [SLTIU] 0 <u 0 |
+| 20 | 0x050 | `00000001` | [SLTIU] 0 <u 0xFFFFFFFF (com sinal daria 0) |
+| 21 | 0x054 | `00000000` | [SLTIU] 0xFFFFF000 <u 5 (com sinal daria 1) |
+| 22 | 0x058 | `00000001` | [SLTIU] 0x1000 <u 0xFFFFF800 (com sinal daria 0) |
+| 23 | 0x05c | `00000000` | [SLTIU] 0x1000 <u 0x7FF |
+| 24 | 0x060 | `00000001` | [SLTIU] 0xFFFFF000 <u 0xFFFFFFFF |
+| 25 | 0x064 | `abc07000` | [LW/SW] mem[0x1000] |
+| 26 | 0x068 | `00f07000` | [LW/SW] mem[0x1004] |
+| 27 | 0x06c | `fffff000` | [LW/SW] mem[0x0FFC] (deslocamento negativo) |
+| 28 | 0x070 | `80000000` | [LW/SW] mem[0x17FC] (deslocamento 2044) |
+| 29 | 0x074 | `00000000` | [LW/SW] mem[0x1008] nunca escrita |
+| 30 | 0x078 | `00001000` | [BEQ] 0x1000 == 0x1000 |
+| 31 | 0x07c | `00002000` | [BEQ] 0x1000 == 0x2000 (rs1 < rs2) |
+| 32 | 0x080 | `00002000` | [BEQ] 0x2000 == 0x1000 (rs1 > rs2) |
+| 33 | 0x084 | `00002000` | [BEQ] -0x1000 == 0x1000 |
+| 34 | 0x088 | `00001000` | [BEQ] 0 == 0 |
+| 35 | 0x08c | `00001000` | [BGE] 0x2000 >= 0x1000 |
+| 36 | 0x090 | `00002000` | [BGE] 0x1000 >= 0x2000 |
+| 37 | 0x094 | `00001000` | [BGE] iguais |
+| 38 | 0x098 | `00002000` | [BGE] -0x1000 >= 0x1000 (sem sinal desviaria) |
+| 39 | 0x09c | `00001000` | [BGE] 0x1000 >= -0x1000 (sem sinal nao desviaria) |
+| 40 | 0x0a0 | `00001000` | [BGE] 0x7FFFF000 >= 0x80000000 (overflow no rs1-rs2) |
+| 41 | 0x0a4 | `00002000` | [BGE] 0x80000000 >= 0x7FFFF000 |
+| 42 | 0x0a8 | `00001000` | [BGE] negativos iguais |
+| 43 | 0x0ac | `00001000` | [BGE] 0 >= -0x1000 |
+| 44 | 0x0b0 | `00000414` | [JALR] jalr t6,-24(ra): t6 = pc+4 |
+| 45 | 0x0b4 | `00001000` | [JALR] voltou de sub_a em ra+12 (bit 0 zerado) |
+| 46 | 0x0b8 | `00002000` | [JALR] voltou de sub_b (retorno em t6) |
+| 47 | 0x0bc | `00000028` | [JALR] ra escrito pela chamada de f_jj |
+| 48 | 0x0c0 | `00002000` | [FIM] programa chegou ao fim |
 
 ## Observação (não é regressão)
 
